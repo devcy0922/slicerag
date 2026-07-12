@@ -1,0 +1,24 @@
+{
+  "project_id": "govail-gateway",
+  "query": "Gateway와 LiteLLM 라우팅 구조는?",
+  "memory_hit": true,
+  "chunks": [
+    {
+      "chunk_id": "chunk_demo",
+      "document_id": "doc_demo",
+      "score": 0.83,
+      "text": "Gateway는 외부 진입점이며 LiteLLM은 내부 모델 라우터다.",
+      "source_id": "src_demo"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "src_demo",
+      "type": "markdown",
+      "uri": "repo://govail-gateway/README.md",
+      "title": "GoVail Gateway README",
+      "version": "main"
+    }
+  ]
+}
+

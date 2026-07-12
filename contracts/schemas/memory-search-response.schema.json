@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.govail.example/memory-search-response.schema.json",
+  "title": "GoVail Memory Search Response",
+  "type": "object",
+  "required": ["project_id", "query", "memory_hit", "chunks", "sources"],
+  "properties": {
+    "project_id": { "type": "string" },
+    "query": { "type": "string" },
+    "memory_hit": { "type": "boolean" },
+    "chunks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["chunk_id", "document_id", "score", "text", "source_id"],
+        "properties": {
+          "chunk_id": { "type": "string" },
+          "document_id": { "type": "string" },
+          "score": { "type": "number" },
+          "text": { "type": "string" },
+          "source_id": { "type": "string" }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "type", "uri"],
+        "properties": {
+          "source_id": { "type": "string" },
+          "type": { "type": "string" },
+          "uri": { "type": "string" },
+          "title": { "type": ["string", "null"] },
+          "version": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
+

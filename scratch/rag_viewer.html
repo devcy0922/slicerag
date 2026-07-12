@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoVail Memory — RAG Explorer</title>
+    <!-- Outfit & Inter Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: hsl(220, 25%, 7%);
+            --bg-surface: hsl(220, 20%, 12%);
+            --bg-card: hsl(220, 20%, 16%);
+            --text-main: hsl(210, 20%, 95%);
+            --text-muted: hsl(210, 10%, 65%);
+            --accent: hsl(260, 80%, 70%);
+            --accent-glow: hsla(260, 80%, 70%, 0.15);
+            --border: hsl(220, 15%, 20%);
+            --border-hover: hsl(220, 15%, 30%);
+            --success: hsl(140, 70%, 55%);
+            --danger: hsl(350, 70%, 60%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            padding: 2rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .header-left h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, hsl(260, 85%, 75%), hsl(290, 85%, 70%));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+        }
+
+        .header-left p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 300;
+            margin-top: 0.25rem;
+        }
+
+        /* 2열 화면 분할 레이아웃 */
+        .layout-split {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 2rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* 좌측: 제어판 컨테이너 */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card-panel {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        input, select {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.75rem 0.9rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* Search Input & Button wrapper */
+        .search-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, hsl(260, 75%, 65%), hsl(280, 75%, 60%));
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            font-size: 0.95rem;
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .btn-search:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-guide {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-guide:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* 우측: 결과 컨테이너 (스크롤 활성화) */
+        .right-panel {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            min-height: 0;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .results-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            background-color: var(--border);
+            color: var(--text-muted);
+        }
+
+        .status-hit {
+            background-color: hsla(140, 70%, 55%, 0.15);
+            color: var(--success);
+            border: 1px solid hsla(140, 70%, 55%, 0.3);
+        }
+
+        .status-miss {
+            background-color: hsla(350, 70%, 60%, 0.15);
+            color: var(--danger);
+            border: 1px solid hsla(350, 70%, 60%, 0.3);
+        }
+
+        .results-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .results-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .results-list-container::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 6px;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* 아코디언 카드 스타일 */
+        .chunk-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .chunk-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .chunk-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 0.75rem;
+            user-select: none;
+        }
+
+        .chunk-score {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1rem;
+        }
+
+        /* 접기/펼치기 화살표 아이콘 */
+        .chevron-icon {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        /* 카드 내용 스크롤/접기 영역 */
+        .chunk-content {
+            max-height: 1000px; /* 펼쳐졌을 때의 충분한 높이 한계 */
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        /* 접힌 상태의 스타일 (기본 상태) */
+        .chunk-card.collapsed .chunk-content {
+            max-height: 4.5em; /* 약 3줄 분량 */
+            opacity: 0.75;
+            position: relative;
+        }
+
+        /* 접혔을 때 자연스럽게 가려주는 페이드아웃 효과 */
+        .chunk-card.collapsed .chunk-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1.8em;
+            background: linear-gradient(to bottom, transparent, var(--bg-card));
+            pointer-events: none;
+        }
+
+        .chunk-card:not(.collapsed) .chevron-icon {
+            transform: rotate(180deg); /* 펼쳐졌을 때 위쪽을 가리킴 */
+            color: var(--accent);
+        }
+
+        .chunk-text {
+            line-height: 1.6;
+            color: hsl(210, 15%, 85%);
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
+        .source-tag {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-main);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 6rem 2rem;
+            color: var(--text-muted);
+            font-weight: 300;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.05);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            margin: 4rem auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Slide-in Drawer Style */
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -380px; /* Hidden by default */
+            width: 380px;
+            height: 100vh;
+            background-color: hsla(220, 25%, 8%, 0.96);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-left: 1px solid var(--border);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 2.5rem 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .drawer-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.6rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .drawer-close:hover {
+            color: var(--danger);
+        }
+
+        .drawer-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .sample-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 0.25rem;
+        }
+
+        .sample-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sample-list::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 4px;
+        }
+
+        .sample-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .sample-card:hover {
+            border-color: var(--accent);
+            background-color: hsla(260, 80%, 70%, 0.04);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .sample-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+        }
+
+        .sample-query {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        
+        .sample-version {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            align-self: flex-end;
+        }
+
+        /* Drawer Overlay */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .drawer-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Overlay for closing Drawer -->
+    <div id="drawerOverlay" class="drawer-overlay" onclick="toggleDrawer(false)"></div>
+
+    <!-- Side Slide-in Drawer (추천 질의어 가이드) -->
+    <div id="guideDrawer" class="drawer">
+        <div class="drawer-header">
+            <div class="drawer-title">🔍 추천 질문 가이드</div>
+            <button class="drawer-close" onclick="toggleDrawer(false)">&times;</button>
+        </div>
+        <p class="drawer-description">
+            현재 RAG에 등록되어 있는 실제 문서 기반 예시 질문 리스트입니다. 카드를 클릭하면 질문이 자동으로 입력되고 즉시 검색이 가동됩니다.
+        </p>
+        <div class="sample-list">
+            <div class="sample-card" onclick="injectSampleQuery('This is document of version 1.0.0', '1.0.0')">
+                <span class="sample-tag">Deterministic Mock (V1)</span>
+                <span class="sample-query">"This is document of version 1.0.0"</span>
+                <span class="sample-version">필터 추천: V1.0.0</span>
+            </div>
+            
+            <div class="sample-card" onclick="injectSampleQuery('This is document of version 2.0.0', '2.0.0')">
+                <span class="sample-tag">Deterministic Mock (V2)</span>
+                <span class="sample-query">"This is document of version 2.0.0"</span>
+                <span class="sample-version">필터 추천: V2.0.0</span>
+            </div>
+
+            <div class="sample-card" onclick="injectSampleQuery('postgres pgvector runbook', '1.0.0')">
+                <span class="sample-tag">PostgreSQL 운영 가이드</span>
+                <span class="sample-query">"postgres pgvector runbook"</span>
+                <span class="sample-version">필터 추천: V1.0.0</span>
+            </div>
+
+            <div class="sample-card" onclick="injectSampleQuery('Gateway timeout', '1.0.0')">
+                <span class="sample-tag">네트워크 트러블슈팅</span>
+                <span class="sample-query">"Gateway timeout"</span>
+                <span class="sample-version">필터 추천: V1.0.0</span>
+            </div>
+
+            <div class="sample-card" onclick="injectSampleQuery('Memory API 내부 서비스 노출', '1.0.0')">
+                <span class="sample-tag">아키텍처 설계 불변식</span>
+                <span class="sample-query">"Memory API 내부 서비스 노출"</span>
+                <span class="sample-version">필터 추천: V1.0.0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header>
+        <div class="header-left">
+            <h1>GoVail Memory RAG Explorer</h1>
+            <p>프로젝트 지식 저장소의 검색 결과 및 데이터 격리 실시간 확인</p>
+        </div>
+        <button class="btn-guide" onclick="toggleDrawer(true)">💡 추천 질문 가이드</button>
+    </header>
+
+    <!-- split view layout -->
+    <div class="layout-split">
+        <!-- left side: control panel -->
+        <div class="left-panel">
+            <div class="card-panel">
+                <div class="form-group">
+                    <label for="endpoint">Memory Endpoint</label>
+                    <input type="text" id="endpoint" value="http://192.168.0.5/memory" placeholder="예: http://192.168.0.5/memory">
+                </div>
+                
+                <div class="form-group">
+                    <label for="projectId">Project ID (네임스페이스)</label>
+                    <select id="projectId">
+                        <option value="all" selected>[전체 프로젝트 통합 검색]</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="version">데이터 버전 (Version Filter)</label>
+                    <input type="text" id="version" value="1.0.0" placeholder="예: 1.0.0 (공란 시 필터 없음)">
+                </div>
+
+                <div class="form-group">
+                    <label for="limit">검색 개수 (Limit)</label>
+                    <input type="number" id="limit" value="5" min="1" max="100" placeholder="기본값: 5">
+                </div>
+
+                <div class="form-group">
+                    <label for="query">검색 질의 (Query)</label>
+                    <input type="text" id="query" placeholder="질문 내용을 입력하세요..." value="Gateway timeout">
+                </div>
+
+                <div class="search-wrapper">
+                    <button class="btn-search" onclick="performSearch()">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- right side: search results feed -->
+        <div class="right-panel">
+            <div class="results-header">
+                <h2>Search Results</h2>
+                <span id="hitBadge" class="status-badge">대기 중</span>
+            </div>
+
+            <div id="spinner" class="spinner"></div>
+
+            <div class="results-list-container">
+                <div id="resultsList" class="results-list">
+                    <div class="empty-state">
+                        좌측 제어판에 검색 조건을 입력하고 [Search] 버튼을 누르거나, 우측 상단의 [💡 추천 질문 가이드]를 통해 검색을 가동해 보세요.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            initFromUrlParams();
+            await loadProjects();
+            document.getElementById('endpoint').addEventListener('blur', loadProjects);
+            
+            // 만약 URL에서 복구된 질의어가 존재한다면 자동 검색 수행
+            const query = document.getElementById('query').value.trim();
+            if (query) {
+                performSearch(true); // isInitialLoad = true
+            }
+        });
+
+        // Drawer Control Function
+        function toggleDrawer(open) {
+            const drawer = document.getElementById('guideDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            if (open) {
+                drawer.classList.add('open');
+                overlay.classList.add('open');
+            } else {
+                drawer.classList.remove('open');
+                overlay.classList.remove('open');
+            }
+        }
+
+        // 💡 Accordion Card Toggle Logic
+        function toggleCard(cardElement) {
+            cardElement.classList.toggle('collapsed');
+            updateUrlParams(); // 카드 상태가 변할 때마다 URL 파라미터 갱신
+        }
+
+        // Inject sample and search immediately
+        function injectSampleQuery(queryText, versionTag) {
+            document.getElementById('query').value = queryText;
+            document.getElementById('version').value = versionTag;
+            toggleDrawer(false); // Close drawer
+            performSearch(); // Auto trigger search
+        }
+
+        // URL 파라미터 읽어와 UI 폼 복원
+        function initFromUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('endpoint')) document.getElementById('endpoint').value = params.get('endpoint');
+            if (params.has('version')) document.getElementById('version').value = params.get('version');
+            if (params.has('limit')) document.getElementById('limit').value = params.get('limit');
+            if (params.has('query')) document.getElementById('query').value = params.get('query');
+            if (params.has('projectId')) {
+                window.tempProjectId = params.get('projectId'); // 비동기 로딩 대기
+            }
+        }
+
+        // 💡 실시간 URL 파라미터 갱신 (expanded 카드 목록 상태 포함)
+        function updateUrlParams() {
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const projectId = document.getElementById('projectId').value;
+            const version = document.getElementById('version').value.trim();
+            const limit = document.getElementById('limit').value;
+            const query = document.getElementById('query').value.trim();
+            
+            const params = new URLSearchParams();
+            params.set('endpoint', endpoint);
+            params.set('projectId', projectId);
+            params.set('version', version);
+            params.set('limit', limit);
+            params.set('query', query);
+            
+            // 현재 펼쳐져 있는(collapsed가 없는) 카드 ID 목록 수집
+            const expandedCards = Array.from(document.querySelectorAll('.chunk-card:not(.collapsed)'));
+            if (expandedCards.length > 0) {
+                const ids = expandedCards.map(c => c.id).join(',');
+                params.set('expanded', ids);
+            }
+            
+            window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        }
+
+        async function loadProjects() {
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const projectSelect = document.getElementById('projectId');
+
+            let cleanEndpoint = endpoint;
+            if (cleanEndpoint.endsWith('/')) {
+                cleanEndpoint = cleanEndpoint.slice(0, -1);
+            }
+
+            try {
+                const response = await fetch(`${cleanEndpoint}/internal/projects`);
+                if (!response.ok) throw new Error('프로젝트 조회 실패');
+                const data = await response.json();
+                
+                // 현재 선택된 값 보존 시도
+                const currentVal = projectSelect.value;
+                projectSelect.innerHTML = '<option value="all">[전체 프로젝트 통합 검색]</option>';
+                
+                if (data.projects && data.projects.length > 0) {
+                    data.projects.forEach(proj => {
+                        const opt = document.createElement('option');
+                        opt.value = proj;
+                        opt.textContent = proj;
+                        projectSelect.appendChild(opt);
+                    });
+                }
+                
+                // 기존 값 복구 시도 (URL 파라미터에서 복원된 값 우선)
+                const targetVal = window.tempProjectId || currentVal;
+                if (Array.from(projectSelect.options).some(opt => opt.value === targetVal)) {
+                    projectSelect.value = targetVal;
+                } else {
+                    projectSelect.value = 'all';
+                }
+                
+                // 임시 보관 제거
+                window.tempProjectId = null;
+            } catch (err) {
+                console.error('프로젝트 목록 로드 실패:', err);
+            }
+        }
+
+        async function performSearch(isInitialLoad = false) {
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const projectId = document.getElementById('projectId').value;
+            const query = document.getElementById('query').value.trim();
+            const version = document.getElementById('version').value.trim();
+            const limit = parseInt(document.getElementById('limit').value) || 5;
+
+            const resultsList = document.getElementById('resultsList');
+            const hitBadge = document.getElementById('hitBadge');
+            const spinner = document.getElementById('spinner');
+
+            if (!query) {
+                alert('검색 질의를 입력하세요.');
+                return;
+            }
+
+            // UI Reset
+            resultsList.innerHTML = '';
+            spinner.style.display = 'block';
+            hitBadge.className = 'status-badge';
+            hitBadge.textContent = '조회 중...';
+
+            // URL 동적 업데이트 (초기 로드가 아닐 때만 갱신)
+            if (!isInitialLoad) {
+                updateUrlParams();
+            }
+
+            // Endpoint 끝의 슬래시 제거 처리 (FastAPI // 중복 경로 방지)
+            let cleanEndpoint = endpoint;
+            if (cleanEndpoint.endsWith('/')) {
+                cleanEndpoint = cleanEndpoint.slice(0, -1);
+            }
+
+            const url = `${cleanEndpoint}/internal/projects/${projectId}/search`;
+            const payload = {
+                query: query,
+                limit: limit
+            };
+            if (version) {
+                payload.version = version;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                spinner.style.display = 'none';
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Update Badge
+                if (data.memory_hit) {
+                    hitBadge.className = 'status-badge status-hit';
+                    hitBadge.textContent = 'MEMORY HIT';
+                } else {
+                    hitBadge.className = 'status-badge status-miss';
+                    hitBadge.textContent = 'MEMORY MISS';
+                }
+
+                if (!data.chunks || data.chunks.length === 0) {
+                    resultsList.innerHTML = `<div class="empty-state">검색 결과가 없습니다. (데이터 또는 버전 격리 필터를 확인하세요)</div>`;
+                    return;
+                }
+
+                // Render Chunks
+                data.chunks.forEach(chunk => {
+                    const source = data.sources.find(s => s.source_id === chunk.source_id);
+                    const sourceUri = source ? source.uri : 'Unknown';
+                    const sourceVersion = source ? source.version : 'Unknown';
+
+                    const card = document.createElement('div');
+                    // 💡 고유 chunk_id를 DOM 엘리먼트 ID로 장착하여 펼침 상태 복원 대응
+                    card.id = chunk.chunk_id;
+                    card.className = 'chunk-card collapsed';
+                    card.setAttribute('onclick', 'toggleCard(this)');
+                    card.innerHTML = `
+                        <div class="chunk-meta">
+                            <div>
+                                <span class="source-tag">${sourceUri}</span>
+                                <span style="margin-left: 8px; font-size: 0.8rem; color: var(--text-muted);">Version: ${sourceVersion}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chunk-score">Cosine: ${chunk.score}</div>
+                                <span class="chevron-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="chunk-content">
+                            <div class="chunk-text">${escapeHtml(chunk.text)}</div>
+                        </div>
+                    `;
+                    resultsList.appendChild(card);
+                });
+
+                // 💡 URL 파라미터(expanded)를 통해 기존에 펼쳐진 카드 복원
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('expanded')) {
+                    const expandedIds = params.get('expanded').split(',');
+                    expandedIds.forEach(id => {
+                        const card = document.getElementById(id);
+                        if (card) {
+                            card.classList.remove('collapsed');
+                        }
+                    });
+                }
+
+            } catch (error) {
+                spinner.style.display = 'none';
+                hitBadge.className = 'status-badge status-miss';
+                hitBadge.textContent = 'ERROR';
+                resultsList.innerHTML = `<div class="empty-state" style="color: var(--danger); border-color: var(--danger);">
+                    RAG 서버 연결에 실패했습니다.<br>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; display: block;">${error.message}</span>
+                </div>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

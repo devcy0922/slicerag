@@ -1,0 +1,17 @@
+services:
+  govail-memory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: govail-memory
+    restart: unless-stopped
+    ports:
+      - "${GOVAIL_MEMORY_PORT:-8095}:8095"
+    environment:
+      GOVAIL_MEMORY_STORE: ${GOVAIL_MEMORY_STORE:-postgres}
+      GOVAIL_MEMORY_DATABASE_URL: ${GOVAIL_MEMORY_DATABASE_URL}
+      GOVAIL_MEMORY_GATEWAY_URL: ${GOVAIL_MEMORY_GATEWAY_URL:-http://192.168.0.5:8080}
+      GOVAIL_MEMORY_INTERNAL_TOKEN: ${GOVAIL_MEMORY_INTERNAL_TOKEN}
+      GOVAIL_MEMORY_EMBEDDING_DIMENSIONS: ${GOVAIL_MEMORY_EMBEDDING_DIMENSIONS:-256}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
