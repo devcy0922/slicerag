@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.govail.example/memory-search-response.schema.json",
-  "title": "GoVail Memory Search Response",
+  "$id": "https://schemas.aegis.example/memory-search-response.schema.json",
+  "title": "Aegis Memory Search Response",
   "type": "object",
   "required": ["project_id", "query", "memory_hit", "chunks", "sources"],
   "properties": {

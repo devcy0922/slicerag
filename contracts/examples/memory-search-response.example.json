@@ -1,5 +1,5 @@
 {
-  "project_id": "govail-gateway",
+  "project_id": "aegis-gateway",
   "query": "Gateway와 LiteLLM 라우팅 구조는?",
   "memory_hit": true,
   "chunks": [
@@ -15,8 +15,8 @@
     {
       "source_id": "src_demo",
       "type": "markdown",
-      "uri": "repo://govail-gateway/README.md",
-      "title": "GoVail Gateway README",
+      "uri": "repo://aegis-gateway/README.md",
+      "title": "Aegis Gateway README",
       "version": "main"
     }
   ]

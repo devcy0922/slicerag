@@ -41,7 +41,7 @@ def ingest_file(file_path: str, base_dir: str, project_id: str, version: str, en
         print(f"[ERROR] Failed to connect to memory service at {url}: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="GoVail RAG Ingestion Pipeline CLI")
+    parser = argparse.ArgumentParser(description="Aegis RAG Ingestion Pipeline CLI")
     parser.add_argument("--project-id", default="aegis-system-docs", help="Target RAG namespace project_id")
     parser.add_argument("--dir", required=True, help="Base directory containing documentation files")
     parser.add_argument("--doc-version", default="1.0.0", help="Document version for tagging data")

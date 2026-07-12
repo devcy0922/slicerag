@@ -13,8 +13,8 @@ from slicerag.models import (
 from slicerag.store_factory import create_store
 
 app = FastAPI(
-    title="GoVail Memory",
-    description="GoVail 내부 Project RAG 서비스",
+    title="Aegis Memory",
+    description="Aegis 내부 Project RAG 서비스",
     version="0.1.0",
 )
 
@@ -36,7 +36,7 @@ def read_root():
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
             return f.read()
-    return "<h1>GoVail Memory RAG Explorer</h1>"
+    return "<h1>Aegis Memory RAG Explorer</h1>"
 
 
 @app.get("/health")

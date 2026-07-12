@@ -1,4 +1,4 @@
-# 00-L2-common — GoVail 공통 규칙
+# 00-L2-common — Aegis 공통 규칙
 
 ## 언어와 문서
 
@@ -10,7 +10,7 @@
 
 - 실제 API Key, DB 패스워드, 내부 토큰, 고객 소스코드는 커밋하지 않는다.
 - `.env`는 커밋하지 않고 `.env.example`만 유지한다.
-- 테스트 데이터는 `govail-demo-*`, `example.com`, `10.0.0.x` 같은 가상 값을 사용한다.
+- 테스트 데이터는 `aegis-demo-*`, `example.com`, `10.0.0.x` 같은 가상 값을 사용한다.
 
 ## 작업 범위
 

@@ -46,7 +46,7 @@ class PostgresMemoryStore:
         embedding_provider = None,
     ) -> None:
         if not database_url:
-            raise ValueError("AEGIS_MEMORY_DATABASE_URL is required for postgres store")
+            raise ValueError("SLICERAG_DATABASE_URL is required for postgres store")
         self.database_url = database_url
         self.embedding_provider = embedding_provider or get_embedding_provider()
         run_migrations(self.database_url)

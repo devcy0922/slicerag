@@ -1,4 +1,4 @@
-# GoVail Memory API
+# Aegis Memory API
 
 모든 API는 내부 서비스 호출용이다. 외부 클라이언트는 직접 호출하지 않는다.
 
@@ -13,7 +13,7 @@ GET /health
 ```json
 {
   "status": "ok",
-  "service": "govail-memory"
+  "service": "slicerag"
 }
 ```
 
@@ -29,13 +29,13 @@ POST /internal/projects/{project_id}/documents
 {
   "source": {
     "type": "markdown",
-    "uri": "repo://govail-gateway/README.md",
-    "title": "GoVail Gateway README",
+    "uri": "repo://aegis-gateway/README.md",
+    "title": "Aegis Gateway README",
     "version": "main"
   },
   "content": "# 문서 본문",
   "metadata": {
-    "repository": "govail-gateway",
+    "repository": "aegis-gateway",
     "branch": "main"
   }
 }
@@ -45,7 +45,7 @@ POST /internal/projects/{project_id}/documents
 
 ```json
 {
-  "project_id": "govail-gateway",
+  "project_id": "aegis-gateway",
   "document_id": "doc_demo",
   "chunk_count": 4,
   "status": "accepted"
@@ -73,7 +73,7 @@ POST /internal/projects/{project_id}/search
 
 ```json
 {
-  "project_id": "govail-gateway",
+  "project_id": "aegis-gateway",
   "query": "Gateway와 LiteLLM 라우팅 구조는?",
   "memory_hit": true,
   "chunks": [
@@ -89,8 +89,8 @@ POST /internal/projects/{project_id}/search
     {
       "source_id": "src_demo",
       "type": "markdown",
-      "uri": "repo://govail-gateway/README.md",
-      "title": "GoVail Gateway README",
+      "uri": "repo://aegis-gateway/README.md",
+      "title": "Aegis Gateway README",
       "version": "main"
     }
   ]
