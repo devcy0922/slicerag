@@ -1,0 +1,34 @@
+# govail-memory 프로젝트 설정
+# GoVail 플랫폼 내부 Project RAG 서비스
+
+domain: govail-memory
+platform: macmini
+
+components:
+  - memory-api
+  - ingest-pipeline
+  - vector-search
+
+verify:
+  tools:
+    - python3
+    - pytest
+    - ruff
+
+config_files:
+  - pyproject.toml
+  - docker-compose.yml
+  - Dockerfile
+  - .env.example
+  - migrations/001_init_pgvector.sql
+  - docs/architecture.md
+  - docs/api.md
+  - docs/schema.md
+
+runtime:
+  local_workspace: /Users/studio-server/srv/govail-memory
+  deploy_target: macmini
+  gateway_endpoint: http://192.168.0.5:8080
+  database_owner: ai-service-infra
+  database_kind: postgres-pgvector
+  service_visibility: internal-only
