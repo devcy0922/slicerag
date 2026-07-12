@@ -1,10 +1,10 @@
-# GoVail Memory 데이터 모델
+# Aegis Memory 데이터 모델
 
 MVP 기본 저장소는 PostgreSQL + pgvector다.
 
 실행 가능한 초기 migration은 `migrations/001_init_pgvector.sql`에 둔다.
 
-서비스에서 PostgreSQL 저장소를 사용하려면 `GOVAIL_MEMORY_STORE=postgres`와 `GOVAIL_MEMORY_DATABASE_URL`을 설정한다.
+서비스에서 PostgreSQL 저장소를 사용하려면 `SLICERAG_STORE=postgres`와 `SLICERAG_DATABASE_URL`을 설정한다.
 
 검색 대상 문서가 없는 새 `project_id`도 검색 로그를 남길 수 있도록, PostgreSQL store는 search 시작 시 `memory_projects`에 project row를 idempotent하게 보장한다.
 

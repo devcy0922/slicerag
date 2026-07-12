@@ -1,7 +1,7 @@
-# govail-memory 프로젝트 설정
-# GoVail 플랫폼 내부 Project RAG 서비스
+# slicerag 프로젝트 설정
+# Aegis 플랫폼 내부 Project RAG 서비스
 
-domain: govail-memory
+domain: slicerag
 platform: macmini
 
 components:
@@ -26,7 +26,7 @@ config_files:
   - docs/schema.md
 
 runtime:
-  local_workspace: /Users/studio-server/srv/govail-memory
+  local_workspace: /Users/studio-server/srv/slicerag
   deploy_target: macmini
   gateway_endpoint: http://192.168.0.5:8080
   database_owner: ai-service-infra

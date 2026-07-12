@@ -5,11 +5,11 @@ import httpx
 import openai
 
 EVAL_QUESTIONS = [
-    "GoVail Memory의 API 포트는 기본적으로 몇 번인가요?",
-    "GoVail Gateway에서 타임아웃 기본값은 몇 초인가요?",
-    "GoVail의 공통 계약 스키마 정의에서 데이터 필드 명명 규칙은 무엇인가요?",
-    "GoVail Memory에서 PostgreSQL DB를 쓸 때 vector 데이터타입을 사용하는 테이블은 무엇인가요?",
-    "오픈소스 프로젝트인 GoVail에서 사내 전용 인프라 IP를 노출하지 않으려면 가이드를 어디에 보관해야 하나요?"
+    "Aegis Memory의 API 포트는 기본적으로 몇 번인가요?",
+    "Aegis Gateway에서 타임아웃 기본값은 몇 초인가요?",
+    "Aegis의 공통 계약 스키마 정의에서 데이터 필드 명명 규칙은 무엇인가요?",
+    "Aegis Memory에서 PostgreSQL DB를 쓸 때 vector 데이터타입을 사용하는 테이블은 무엇인가요?",
+    "오픈소스 프로젝트인 Aegis에서 사내 전용 인프라 IP를 노출하지 않으려면 가이드를 어디에 보관해야 하나요?"
 ]
 
 def query_rag(query: str, project_id: str, endpoint: str, version: str | None = None) -> dict:
@@ -29,19 +29,19 @@ def call_llm_generator(query: str, contexts: list[str], llm_client: openai.OpenA
     if mock:
         # Mock answers based on query keywords
         if "포트" in query:
-            return "GoVail Memory의 기본 API 포트는 8095번입니다. 이는 내부 네트워크에서만 접근 가능하도록 설계되었습니다."
+            return "Aegis Memory의 기본 API 포트는 8095번입니다. 이는 내부 네트워크에서만 접근 가능하도록 설계되었습니다."
         elif "타임아웃" in query:
-            return "GoVail Gateway의 HTTP 클라이언트 및 API 호출 기본 타임아웃은 AEGIS_HTTP_TIMEOUT 환경변수에 의해 90.0초로 지정됩니다."
+            return "Aegis Gateway의 HTTP 클라이언트 및 API 호출 기본 타임아웃은 AEGIS_HTTP_TIMEOUT 환경변수에 의해 90.0초로 지정됩니다."
         elif "명명 규칙" in query:
-            return "GoVail의 공통 계약 스키마(contracts) 정의에서 데이터 필드는 기본적으로 snake_case를 사용합니다."
+            return "Aegis의 공통 계약 스키마(contracts) 정의에서 데이터 필드는 기본적으로 snake_case를 사용합니다."
         elif "PostgreSQL" in query:
-            return "GoVail Memory에서 pgvector를 사용하는 테이블은 memory_chunks 테이블의 embedding 컬럼입니다."
+            return "Aegis Memory에서 pgvector를 사용하는 테이블은 memory_chunks 테이블의 embedding 컬럼입니다."
         elif "IP" in query:
             return "사내 전용 환경 및 인프라 사설 IP 등 비공개 가이드는 .gitignore에 등록되는 docs/internal/ 디렉토리에 보관해야 합니다."
         return "주어진 컨텍스트에 기반한 목업 답변입니다."
 
     context_str = "\n\n".join(contexts)
-    prompt = f"""당신은 GoVail 시스템 개발 지원 에이전트입니다. 주어진 Context를 기반으로 사용자의 Question에 정확하게 답변하세요.
+    prompt = f"""당신은 Aegis 시스템 개발 지원 에이전트입니다. 주어진 Context를 기반으로 사용자의 Question에 정확하게 답변하세요.
 Context에 없는 내용은 억지로 지어내지 말고 모른다고 답하세요.
 
 [Context]
@@ -130,7 +130,7 @@ def evaluate_relevance(query: str, answer: str, llm_client: openai.OpenAI, model
         return 0.0
 
 def main():
-    parser = argparse.ArgumentParser(description="GoVail RAG Evaluation Pipeline")
+    parser = argparse.ArgumentParser(description="Aegis RAG Evaluation Pipeline")
     parser.add_argument("--project-id", default="aegis-system-docs", help="Target RAG namespace project_id")
     parser.add_argument("--endpoint", default="http://localhost:8095", help="aegis-memory service endpoint")
     parser.add_argument("--llm-model", default="text-davinci-003", help="Model name for generation & evaluation")

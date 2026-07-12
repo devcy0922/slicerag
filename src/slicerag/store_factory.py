@@ -9,5 +9,5 @@ def create_store() -> MemoryStoreProtocol:
         return PostgresMemoryStore(settings.database_url)
     if settings.store == "memory":
         return MemoryStore()
-    raise ValueError(f"unsupported AEGIS_MEMORY_STORE={settings.store}. Mock memory store is disabled.")
+    raise ValueError(f"unsupported SLICERAG_STORE={settings.store}. Mock memory store is disabled.")
 

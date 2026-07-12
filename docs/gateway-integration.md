@@ -10,7 +10,7 @@ Gateway는 다음만 수행한다.
 
 1. API Key에서 `project_id` 확인
 2. 사용자 질문에서 검색 query 생성
-3. `govail-memory` 내부 API 호출
+3. `slicerag` 내부 API 호출
 4. 검색 결과를 system/context message에 첨부
 5. audit log에 memory metadata 기록
 
@@ -26,7 +26,7 @@ Gateway는 다음을 수행하지 않는다.
 
 ```json
 {
-  "project_id": "govail-gateway",
+  "project_id": "aegis-gateway",
   "memory": {
     "enabled": true,
     "memory_hit": true,

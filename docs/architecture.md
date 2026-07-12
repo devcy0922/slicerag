@@ -1,8 +1,8 @@
-# GoVail Memory 아키텍처
+# Aegis Memory 아키텍처
 
 ## 설계 목표
 
-GoVail Memory의 첫 목표는 **인증된 Project RAG**다.
+Aegis Memory의 첫 목표는 **인증된 Project RAG**다.
 
 같은 질문이라도 API Key가 가리키는 `project_id`에 따라 서로 다른 문서 네임스페이스를 검색해야 한다. 이 기능은 Gateway의 정책/감사 경계를 깨지 않고 제공되어야 한다.
 
@@ -11,8 +11,8 @@ GoVail Memory의 첫 목표는 **인증된 Project RAG**다.
 ```mermaid
 sequenceDiagram
     participant Client as Client / IDE / CLI
-    participant Gateway as govail-gateway
-    participant Memory as govail-memory
+    participant Gateway as aegis-gateway
+    participant Memory as slicerag
     participant Router as LiteLLM
     participant Model as vLLM / MLX
 
@@ -34,10 +34,10 @@ sequenceDiagram
 
 | 항목 | 위치 | 이유 |
 |---|---|---|
-| `govail-gateway` | macmini | 외부 진입점과 정책 집행 |
-| `govail-memory` | macmini | DB, 검색, ingest worker와 가까움 |
+| `aegis-gateway` | macmini | 외부 진입점과 정책 집행 |
+| `slicerag` | macmini | DB, 검색, ingest worker와 가까움 |
 | PostgreSQL + pgvector | macmini | Gateway DB와 운영 일관성 |
-| raw archive | NAS `/srv/nas/shared/govail-memory/` | 원문 백업과 재처리 |
+| raw archive | NAS `/srv/nas/shared/slicerag/` | 원문 백업과 재처리 |
 | vLLM | dgx-spark | 모델 서빙 전용 |
 | MLX | M1 Max | 보조 모델 서빙 |
 
@@ -80,7 +80,7 @@ document ingest
 
 ## 저장소 모드
 
-`GOVAIL_MEMORY_STORE`로 저장소 구현을 선택한다.
+`SLICERAG_STORE`로 저장소 구현을 선택한다.
 
 | 값 | 용도 |
 |---|---|

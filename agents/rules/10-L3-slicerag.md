@@ -1,10 +1,10 @@
-# 10-L3-govail-memory — Project RAG 도메인 규칙
+# 10-L3-slicerag — Project RAG 도메인 규칙
 
 ## 프로젝트 정체성
 
-`govail-memory`는 GoVail 플랫폼의 내부 Project RAG 서비스다.
+`slicerag`는 Aegis 플랫폼의 내부 Project RAG 서비스다.
 
-이 서비스는 API Key 인증을 직접 수행하지 않는다. `govail-gateway`가 인증과 `project_id` 식별을 완료한 뒤 내부 API로 호출한다.
+이 서비스는 API Key 인증을 직접 수행하지 않는다. `aegis-gateway`가 인증과 `project_id` 식별을 완료한 뒤 내부 API로 호출한다.
 
 ## MVP 범위
 
