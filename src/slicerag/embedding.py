@@ -29,8 +29,9 @@ class OpenAIEmbeddingProvider:
     """Gateway 정책을 경유하는 OpenAI 호환 임베딩 프로바이더."""
 
     def __init__(self, model: str | None = None, dimensions: int | None = None) -> None:
-        from slicerag.config import settings
         import openai
+
+        from slicerag.config import settings
 
         self.model = model or settings.embedding_model
         self.dimensions = dimensions or settings.embedding_dimensions

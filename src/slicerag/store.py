@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from slicerag.chunking import chunk_text
-from slicerag.embedding import get_embedding_provider, cosine_similarity
+from slicerag.embedding import cosine_similarity, get_embedding_provider
 from slicerag.ids import stable_id
 from slicerag.models import (
     DocumentIngestRequest,

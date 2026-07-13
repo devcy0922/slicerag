@@ -1,9 +1,9 @@
 import hashlib
 import json
+import os
 from typing import Any
 
 from slicerag.chunking import chunk_text
-from slicerag.config import settings
 from slicerag.embedding import get_embedding_provider
 from slicerag.ids import stable_id
 from slicerag.models import (
@@ -17,7 +17,6 @@ from slicerag.store import StoredDocument
 
 
 def run_migrations(database_url: str) -> None:
-    import os
     import psycopg
 
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
