@@ -2,6 +2,7 @@ import hashlib
 import math
 import re
 from collections.abc import Iterable
+from typing import Any
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]+|[가-힣]+", re.UNICODE)
 
@@ -50,7 +51,7 @@ class OpenAIEmbeddingProvider:
         if not text.strip():
             return [0.0] * self.dimensions
 
-        params = {
+        params: dict[str, Any] = {
             "input": text,
             "model": self.model,
         }
