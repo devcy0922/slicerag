@@ -5,7 +5,6 @@ from slicerag import main
 from slicerag.config import settings
 from slicerag.store import MemoryStore
 
-
 INTERNAL_TOKEN = "test-internal-token"
 HEADERS = {"X-SliceRAG-Internal-Token": INTERNAL_TOKEN}
 
