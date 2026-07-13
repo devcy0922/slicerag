@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.aegis.example/memory-search-response.schema.json",
-  "title": "Aegis Memory Search Response",
+  "title": "SliceRAG Search Response",
   "type": "object",
   "required": ["project_id", "query", "memory_hit", "chunks", "sources"],
   "properties": {
@@ -38,4 +38,3 @@
     }
   }
 }
-

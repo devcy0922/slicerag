@@ -151,26 +151,20 @@ class PostgresMemoryStore:
         with psycopg.connect(self.database_url) as conn:
             rows: list[dict[str, Any]]
             with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-                display_name = "All Projects" if project_id == "all" else project_id
                 cursor.execute(
                     """
                     INSERT INTO memory_projects (project_id, display_name)
                     VALUES (%s, %s)
                     ON CONFLICT (project_id) DO NOTHING
                     """,
-                    (project_id, display_name),
+                    (project_id, project_id),
                 )
                 
                 version_filter = ""
                 query_params = [
                     _vector_literal(query_embedding),
+                    project_id,
                 ]
-                
-                project_filter = "c.project_id = %s"
-                if project_id != "all":
-                    query_params.append(project_id)
-                else:
-                    project_filter = "1=1"
                 
                 if version:
                     version_filter = "AND c.version = %s"
@@ -194,7 +188,7 @@ class PostgresMemoryStore:
                       s.version
                     FROM memory_chunks c
                     JOIN memory_sources s ON s.source_id = c.source_id
-                    WHERE {project_filter} {version_filter}
+                    WHERE c.project_id = %s {version_filter}
                     ORDER BY c.embedding <=> %s::vector
                     LIMIT %s
                 """
@@ -249,19 +243,13 @@ class PostgresMemoryStore:
 
         with psycopg.connect(self.database_url) as conn:
             with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-                project_cond = "project_id = %s"
-                params = [project_id, document_id]
-                if project_id == "all":
-                    project_cond = "1=1"
-                    params = [document_id]
-
                 cursor.execute(
-                    f"""
+                    """
                     SELECT document_id, project_id, source_id, content_hash, metadata, created_at
                     FROM memory_documents
-                    WHERE {project_cond} AND document_id = %s
+                    WHERE project_id = %s AND document_id = %s
                     """,
-                    tuple(params),
+                    (project_id, document_id),
                 )
                 row = cursor.fetchone()
 
@@ -275,16 +263,6 @@ class PostgresMemoryStore:
             metadata=dict(row["metadata"]),
             created_at=row["created_at"],
         )
-
-    def get_projects(self) -> list[str]:
-        import psycopg
-
-        with psycopg.connect(self.database_url) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT project_id FROM memory_projects WHERE project_id NOT LIKE '%nas%' ORDER BY project_id")
-                rows = cursor.fetchall()
-        return [row[0] for row in rows]
-
 
 def _vector_literal(values: list[float]) -> str:
     return "[" + ",".join(f"{value:.9f}" for value in values) + "]"

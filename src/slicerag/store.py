@@ -104,7 +104,8 @@ class MemoryStore:
         scored_chunks = [
             (cosine_similarity(query_embedding, chunk.embedding), chunk)
             for chunk in self.chunks.values()
-            if (project_id == "all" or chunk.project_id == project_id) and (version is None or chunk.version == version)
+            if chunk.project_id == project_id
+            and (version is None or chunk.version == version)
         ]
         scored_chunks.sort(key=lambda item: item[0], reverse=True)
         selected = [(score, chunk) for score, chunk in scored_chunks[:limit] if score > 0]
@@ -141,9 +142,6 @@ class MemoryStore:
 
     def get_document(self, project_id: str, document_id: str) -> StoredDocument | None:
         document = self.documents.get(document_id)
-        if document is None or (project_id != "all" and document.project_id != project_id):
+        if document is None or document.project_id != project_id:
             return None
         return document
-
-    def get_projects(self) -> list[str]:
-        return list({chunk.project_id for chunk in self.chunks.values() if "nas" not in chunk.project_id.lower()})
