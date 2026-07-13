@@ -160,7 +160,7 @@ class PostgresMemoryStore:
                 )
                 
                 version_filter = ""
-                query_params = [
+                query_params: list[Any] = [
                     _vector_literal(query_embedding),
                     project_id,
                 ]
