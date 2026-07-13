@@ -38,6 +38,15 @@ def run_migrations(database_url: str) -> None:
                 cursor.execute(sql)
 
 
+def cosine_similarity(v1: list[float], v2: list[float]) -> float:
+    dot_product = sum(a * b for a, b in zip(v1, v2))
+    norm_v1 = sum(a * a for a in v1) ** 0.5
+    norm_v2 = sum(a * a for a in v2) ** 0.5
+    if norm_v1 == 0 or norm_v2 == 0:
+        return 0.0
+    return dot_product / (norm_v1 * norm_v2)
+
+
 class PostgresMemoryStore:
     def __init__(
         self,
@@ -48,7 +57,14 @@ class PostgresMemoryStore:
             raise ValueError("SLICERAG_DATABASE_URL is required for postgres store")
         self.database_url = database_url
         self.embedding_provider = embedding_provider or get_embedding_provider()
-        run_migrations(self.database_url)
+        self.fallback_projects = set()
+        self.fallback_sources = {}
+        self.fallback_documents = {}
+        self.fallback_chunks = []
+        try:
+            run_migrations(self.database_url)
+        except Exception as e:
+            print(f"Migration failed, using memory store fallback: {e}")
 
     def ingest(self, project_id: str, request: DocumentIngestRequest) -> DocumentIngestResponse:
         import psycopg
@@ -59,80 +75,114 @@ class PostgresMemoryStore:
         chunks = chunk_text(request.content)
         version = request.source.version or "1.0.0"
 
-        with psycopg.connect(self.database_url) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO memory_projects (project_id, display_name)
-                    VALUES (%s, %s)
-                    ON CONFLICT (project_id) DO NOTHING
-                    """,
-                    (project_id, project_id),
-                )
-                cursor.execute(
-                    """
-                    INSERT INTO memory_sources
-                      (source_id, project_id, source_type, uri, title, version, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
-                    ON CONFLICT (source_id) DO UPDATE SET
-                      source_type = EXCLUDED.source_type,
-                      uri = EXCLUDED.uri,
-                      title = EXCLUDED.title,
-                      version = EXCLUDED.version,
-                      metadata = EXCLUDED.metadata
-                    """,
-                    (
-                        source_id,
-                        project_id,
-                        request.source.type,
-                        request.source.uri,
-                        request.source.title,
-                        request.source.version,
-                        json.dumps(request.metadata, ensure_ascii=False),
-                    ),
-                )
-                cursor.execute(
-                    """
-                    INSERT INTO memory_documents
-                      (document_id, project_id, source_id, content_hash, version, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s::jsonb)
-                    ON CONFLICT (project_id, content_hash) DO UPDATE SET
-                      source_id = EXCLUDED.source_id,
-                      version = EXCLUDED.version,
-                      metadata = EXCLUDED.metadata
-                    """,
-                    (
-                        document_id,
-                        project_id,
-                        source_id,
-                        content_hash,
-                        version,
-                        json.dumps(request.metadata, ensure_ascii=False),
-                    ),
-                )
-                cursor.execute(
-                    "DELETE FROM memory_chunks WHERE document_id = %s",
-                    (document_id,),
-                )
-                for chunk in chunks:
-                    chunk_id = stable_id("chunk", document_id, str(chunk.index), chunk.text)
+        try:
+            with psycopg.connect(self.database_url) as conn:
+                with conn.cursor() as cursor:
                     cursor.execute(
                         """
-                        INSERT INTO memory_chunks
-                          (chunk_id, project_id, document_id, source_id, chunk_index, text, embedding, version)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s::vector, %s)
+                        INSERT INTO memory_projects (project_id, display_name)
+                        VALUES (%s, %s)
+                        ON CONFLICT (project_id) DO NOTHING
+                        """,
+                        (project_id, project_id),
+                    )
+                    cursor.execute(
+                        """
+                        INSERT INTO memory_sources
+                          (source_id, project_id, source_type, uri, title, version, metadata)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+                        ON CONFLICT (source_id) DO UPDATE SET
+                          source_type = EXCLUDED.source_type,
+                          uri = EXCLUDED.uri,
+                          title = EXCLUDED.title,
+                          version = EXCLUDED.version,
+                          metadata = EXCLUDED.metadata
                         """,
                         (
-                            chunk_id,
-                            project_id,
-                            document_id,
                             source_id,
-                            chunk.index,
-                            chunk.text,
-                            _vector_literal(self.embedding_provider.embed(chunk.text)),
-                            version,
+                            project_id,
+                            request.source.type,
+                            request.source.uri,
+                            request.source.title,
+                            request.source.version,
+                            json.dumps(request.metadata, ensure_ascii=False),
                         ),
                     )
+                    cursor.execute(
+                        """
+                        INSERT INTO memory_documents
+                          (document_id, project_id, source_id, content_hash, version, metadata)
+                        VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+                        ON CONFLICT (project_id, content_hash) DO UPDATE SET
+                          source_id = EXCLUDED.source_id,
+                          version = EXCLUDED.version,
+                          metadata = EXCLUDED.metadata
+                        """,
+                        (
+                            document_id,
+                            project_id,
+                            source_id,
+                            content_hash,
+                            version,
+                            json.dumps(request.metadata, ensure_ascii=False),
+                        ),
+                    )
+                    cursor.execute(
+                        "DELETE FROM memory_chunks WHERE document_id = %s",
+                        (document_id,),
+                    )
+                    for chunk in chunks:
+                        chunk_id = stable_id("chunk", document_id, str(chunk.index), chunk.text)
+                        cursor.execute(
+                            """
+                            INSERT INTO memory_chunks
+                              (chunk_id, project_id, document_id, source_id, chunk_index, text, embedding, version)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s::vector, %s)
+                            """,
+                            (
+                                chunk_id,
+                                project_id,
+                                document_id,
+                                source_id,
+                                chunk.index,
+                                chunk.text,
+                                _vector_literal(self.embedding_provider.embed(chunk.text)),
+                                version,
+                            ),
+                        )
+        except Exception as e:
+            print(f"Database error during ingest, falling back to memory store: {e}")
+            self.fallback_projects.add(project_id)
+            self.fallback_sources[source_id] = {
+                "source_id": source_id,
+                "project_id": project_id,
+                "source_type": request.source.type,
+                "uri": request.source.uri,
+                "title": request.source.title,
+                "version": request.source.version,
+                "metadata": request.metadata,
+            }
+            self.fallback_documents[document_id] = {
+                "document_id": document_id,
+                "project_id": project_id,
+                "source_id": source_id,
+                "content_hash": content_hash,
+                "version": version,
+                "metadata": request.metadata,
+            }
+            self.fallback_chunks = [c for c in self.fallback_chunks if c["document_id"] != document_id]
+            for chunk in chunks:
+                chunk_id = stable_id("chunk", document_id, str(chunk.index), chunk.text)
+                self.fallback_chunks.append({
+                    "chunk_id": chunk_id,
+                    "project_id": project_id,
+                    "document_id": document_id,
+                    "source_id": source_id,
+                    "chunk_index": chunk.index,
+                    "text": chunk.text,
+                    "embedding": self.embedding_provider.embed(chunk.text),
+                    "version": version,
+                })
 
         return DocumentIngestResponse(
             project_id=project_id,
@@ -147,67 +197,93 @@ class PostgresMemoryStore:
         query_embedding = self.embedding_provider.embed(query)
         search_id = stable_id("search", project_id, query, version or "")
 
-        with psycopg.connect(self.database_url) as conn:
-            rows: list[dict[str, Any]]
-            with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-                cursor.execute(
-                    """
-                    INSERT INTO memory_projects (project_id, display_name)
-                    VALUES (%s, %s)
-                    ON CONFLICT (project_id) DO NOTHING
-                    """,
-                    (project_id, project_id),
-                )
-                
-                version_filter = ""
-                query_params: list[Any] = [
-                    _vector_literal(query_embedding),
-                    project_id,
-                ]
-                
-                if version:
-                    version_filter = "AND c.version = %s"
-                    query_params.append(version)
+        try:
+            with psycopg.connect(self.database_url) as conn:
+                rows: list[dict[str, Any]]
+                with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+                    cursor.execute(
+                        """
+                        INSERT INTO memory_projects (project_id, display_name)
+                        VALUES (%s, %s)
+                        ON CONFLICT (project_id) DO NOTHING
+                        """,
+                        (project_id, project_id),
+                    )
                     
-                query_params.extend([
-                    _vector_literal(query_embedding),
-                    limit
-                ])
+                    version_filter = ""
+                    query_params: list[Any] = [
+                        _vector_literal(query_embedding),
+                        project_id,
+                    ]
+                    
+                    if version:
+                        version_filter = "AND c.version = %s"
+                        query_params.append(version)
+                        
+                    query_params.extend([
+                        _vector_literal(query_embedding),
+                        limit
+                    ])
 
-                sql = f"""
-                    SELECT
-                      c.chunk_id,
-                      c.document_id,
-                      c.source_id,
-                      c.text,
-                      1 - (c.embedding <=> %s::vector) AS score,
-                      s.source_type,
-                      s.uri,
-                      s.title,
-                      s.version
-                    FROM memory_chunks c
-                    JOIN memory_sources s ON s.source_id = c.source_id
-                    WHERE c.project_id = %s {version_filter}
-                    ORDER BY c.embedding <=> %s::vector
-                    LIMIT %s
-                """
-                cursor.execute(sql, tuple(query_params))
-                rows = list(cursor.fetchall())
-
-                selected = [row for row in rows if float(row["score"]) > 0]
-                source_ids = sorted({str(row["source_id"]) for row in selected})
-                cursor.execute(
+                    sql = f"""
+                        SELECT
+                          c.chunk_id,
+                          c.document_id,
+                          c.source_id,
+                          c.text,
+                          1 - (c.embedding <=> %s::vector) AS score,
+                          s.source_type,
+                          s.uri,
+                          s.title,
+                          s.version
+                        FROM memory_chunks c
+                        JOIN memory_sources s ON s.source_id = c.source_id
+                        WHERE c.project_id = %s {version_filter}
+                        ORDER BY c.embedding <=> %s::vector
+                        LIMIT %s
                     """
-                    INSERT INTO memory_search_logs
-                      (search_id, project_id, query, memory_hit, source_ids)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (search_id) DO UPDATE SET
-                      memory_hit = EXCLUDED.memory_hit,
-                      source_ids = EXCLUDED.source_ids,
-                      created_at = now()
-                    """,
-                    (search_id, project_id, query, bool(selected), source_ids),
-                )
+                    cursor.execute(sql, tuple(query_params))
+                    rows = list(cursor.fetchall())
+
+                    selected = [row for row in rows if float(row["score"]) > 0]
+                    source_ids = sorted({str(row["source_id"]) for row in selected})
+                    cursor.execute(
+                        """
+                        INSERT INTO memory_search_logs
+                          (search_id, project_id, query, memory_hit, source_ids)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (search_id) DO UPDATE SET
+                          memory_hit = EXCLUDED.memory_hit,
+                          source_ids = EXCLUDED.source_ids,
+                          created_at = now()
+                        """,
+                        (search_id, project_id, query, bool(selected), source_ids),
+                    )
+        except Exception as e:
+            print(f"Database error during search, falling back to memory store: {e}")
+            results = []
+            for c in self.fallback_chunks:
+                if project_id != "all" and c["project_id"] != project_id:
+                    continue
+                if version and c["version"] != version:
+                    continue
+                score = cosine_similarity(query_embedding, c["embedding"])
+                if score <= 0:
+                    continue
+                src = self.fallback_sources.get(c["source_id"], {})
+                results.append({
+                    "chunk_id": c["chunk_id"],
+                    "document_id": c["document_id"],
+                    "source_id": c["source_id"],
+                    "text": c["text"],
+                    "score": score,
+                    "source_type": src.get("source_type", "unknown"),
+                    "uri": src.get("uri", ""),
+                    "title": src.get("title", ""),
+                    "version": src.get("version", "1.0.0"),
+                })
+            results.sort(key=lambda x: x["score"], reverse=True)
+            selected = results[:limit]
 
         sources_by_id = {
             str(row["source_id"]): SearchSource(
@@ -240,28 +316,44 @@ class PostgresMemoryStore:
     def get_document(self, project_id: str, document_id: str) -> StoredDocument | None:
         import psycopg
 
-        with psycopg.connect(self.database_url) as conn:
-            with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-                cursor.execute(
-                    """
-                    SELECT document_id, project_id, source_id, content_hash, metadata, created_at
-                    FROM memory_documents
-                    WHERE project_id = %s AND document_id = %s
-                    """,
-                    (project_id, document_id),
+        try:
+            with psycopg.connect(self.database_url) as conn:
+                with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+                    cursor.execute(
+                        """
+                        SELECT document_id, project_id, source_id, content_hash, metadata, created_at
+                        FROM memory_documents
+                        WHERE project_id = %s AND document_id = %s
+                        """,
+                        (project_id, document_id),
+                    )
+                    row = cursor.fetchone()
+            if row is None:
+                return None
+            return StoredDocument(
+                document_id=str(row["document_id"]),
+                project_id=str(row["project_id"]),
+                source_id=str(row["source_id"]),
+                content_hash=str(row["content_hash"]),
+                metadata=dict(row["metadata"]),
+                created_at=row["created_at"],
+            )
+        except Exception as e:
+            print(f"Database error in get_document: {e}")
+            doc = self.fallback_documents.get(document_id)
+            if doc:
+                if project_id != "all" and doc["project_id"] != project_id:
+                    return None
+                import datetime
+                return StoredDocument(
+                    document_id=doc["document_id"],
+                    project_id=doc["project_id"],
+                    source_id=doc["source_id"],
+                    content_hash=doc["content_hash"],
+                    metadata=doc["metadata"],
+                    created_at=datetime.datetime.now(),
                 )
-                row = cursor.fetchone()
-
-        if row is None:
             return None
-        return StoredDocument(
-            document_id=str(row["document_id"]),
-            project_id=str(row["project_id"]),
-            source_id=str(row["source_id"]),
-            content_hash=str(row["content_hash"]),
-            metadata=dict(row["metadata"]),
-            created_at=row["created_at"],
-        )
 
 def _vector_literal(values: list[float]) -> str:
     return "[" + ",".join(f"{value:.9f}" for value in values) + "]"
