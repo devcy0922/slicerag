@@ -9,9 +9,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 256
     embedding_provider: str = "hash"
     embedding_model: str = "text-embedding-3-small"
-    openai_api_key: str = "dummy"
-    openai_base_url: str = ""
+    embedding_gateway_url: str = ""
+    embedding_api_key: str = ""
+    internal_token: str = ""
 
 
 settings = Settings()
-

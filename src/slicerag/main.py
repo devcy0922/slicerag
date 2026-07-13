@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-import os
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path
 from langsmith import traceable
 
+from slicerag.auth import require_internal_access
 from slicerag.models import (
     DocumentIngestRequest,
     DocumentIngestResponse,
@@ -13,64 +13,67 @@ from slicerag.models import (
 from slicerag.store_factory import create_store
 
 app = FastAPI(
-    title="Aegis Memory",
-    description="Aegis 내부 Project RAG 서비스",
+    title="SliceRAG",
+    description="Gateway가 호출하는 내부 Project RAG 서비스",
     version="0.1.0",
 )
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 store = create_store()
+internal_router = APIRouter(
+    prefix="/internal",
+    dependencies=[Depends(require_internal_access)],
+)
+ProjectPathId = Annotated[
+    str,
+    Path(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[a-z0-9][a-z0-9_-]*$",
+        description="Gateway가 인증 결과에서 결정한 프로젝트 식별자",
+    ),
+]
 
 
-@app.get("/", response_class=HTMLResponse)
-def read_root():
-    # scratch/rag_viewer.html 파일 내용을 직접 읽어서 서빙
-    html_path = os.path.join(os.path.dirname(__file__), "../../scratch/rag_viewer.html")
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>Aegis Memory RAG Explorer</h1>"
+def require_project_scope(project_id: ProjectPathId) -> str:
+    if project_id == "all":
+        raise HTTPException(
+            status_code=422,
+            detail="예약된 프로젝트 식별자는 사용할 수 없습니다.",
+        )
+    return project_id
+
+
+ProjectId = Annotated[str, Depends(require_project_scope)]
 
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
-    return {"status": "ok", "service": "aegis-memory"}
+    return {"status": "ok", "service": "slicerag"}
 
 
-@app.get("/internal/projects")
-async def get_projects() -> dict[str, list[str]]:
-    return {"projects": store.get_projects()}
-
-
-@app.post(
-    "/internal/projects/{project_id}/documents",
+@internal_router.post(
+    "/projects/{project_id}/documents",
     response_model=DocumentIngestResponse,
 )
 @traceable(run_type="chain", name="Ingest Document")
 async def ingest_document(
-    project_id: str, request: DocumentIngestRequest
+    project_id: ProjectId, request: DocumentIngestRequest
 ) -> DocumentIngestResponse:
     return store.ingest(project_id, request)
 
 
-@app.post(
-    "/internal/projects/{project_id}/search",
+@internal_router.post(
+    "/projects/{project_id}/search",
     response_model=SearchResponse,
 )
 @traceable(run_type="chain", name="RAG Search")
-async def search_project(project_id: str, request: SearchRequest) -> SearchResponse:
+async def search_project(
+    project_id: ProjectId, request: SearchRequest
+) -> SearchResponse:
     return store.search(project_id, request.query, request.limit, request.version)
 
 
-@app.get("/internal/projects/{project_id}/documents/{document_id}")
-async def get_document(project_id: str, document_id: str) -> dict[str, str]:
+@internal_router.get("/projects/{project_id}/documents/{document_id}")
+async def get_document(project_id: ProjectId, document_id: str) -> dict[str, str]:
     document = store.get_document(project_id, document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="document not found")
@@ -80,3 +83,6 @@ async def get_document(project_id: str, document_id: str) -> dict[str, str]:
         "source_id": document.source_id,
         "content_hash": document.content_hash,
     }
+
+
+app.include_router(internal_router)

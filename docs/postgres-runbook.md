@@ -25,6 +25,7 @@ docker exec -i shared-postgres sh -lc 'psql -U "$POSTGRES_USER" -d slicerag -v O
 ```bash
 SLICERAG_STORE=postgres \
 SLICERAG_DATABASE_URL='postgresql://<user>:<password>@127.0.0.1:5432/slicerag' \
+SLICERAG_INTERNAL_TOKEN='<gateway와-공유하는-긴-무작위-토큰>' \
 uvicorn slicerag.main:app --host 127.0.0.1 --port 8095
 ```
 
@@ -35,14 +36,17 @@ curl -sS http://127.0.0.1:8095/health
 
 curl -sS -X POST http://127.0.0.1:8095/internal/projects/aegis-gateway/documents \
   -H 'content-type: application/json' \
+  -H 'X-SliceRAG-Internal-Token: <internal-token>' \
   -d '{"source":{"type":"markdown","uri":"repo://aegis-gateway/memory.md"},"content":"Aegis Gateway는 API Key로 project_id를 식별하고 slicerag는 해당 프로젝트 문서만 RAG 검색한다."}'
 
 curl -sS -X POST http://127.0.0.1:8095/internal/projects/aegis-gateway/search \
   -H 'content-type: application/json' \
+  -H 'X-SliceRAG-Internal-Token: <internal-token>' \
   -d '{"query":"project_id RAG 검색","limit":3}'
 
 curl -sS -X POST http://127.0.0.1:8095/internal/projects/other-project/search \
   -H 'content-type: application/json' \
+  -H 'X-SliceRAG-Internal-Token: <internal-token>' \
   -d '{"query":"project_id RAG 검색","limit":3}'
 ```
 
@@ -64,4 +68,3 @@ memory_search_logs: 2
 aegis-gateway search: memory_hit=true, source_ids=1
 other-project search: memory_hit=false
 ```
-

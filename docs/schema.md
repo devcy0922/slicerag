@@ -1,8 +1,10 @@
-# Aegis Memory 데이터 모델
+# SliceRAG 데이터 모델
 
 MVP 기본 저장소는 PostgreSQL + pgvector다.
 
 실행 가능한 초기 migration은 `migrations/001_init_pgvector.sql`에 둔다.
+
+`migrations/003_reject_reserved_project_id.sql`은 새 `all` 프로젝트 namespace 생성을 DB 수준에서도 차단한다. 기존 운영 데이터가 있는 환경에서는 migration 적용 전 해당 예약 식별자 사용 여부를 점검한다.
 
 서비스에서 PostgreSQL 저장소를 사용하려면 `SLICERAG_STORE=postgres`와 `SLICERAG_DATABASE_URL`을 설정한다.
 

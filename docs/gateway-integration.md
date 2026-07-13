@@ -10,7 +10,7 @@ Gateway는 다음만 수행한다.
 
 1. API Key에서 `project_id` 확인
 2. 사용자 질문에서 검색 query 생성
-3. `slicerag` 내부 API 호출
+3. `project_id`와 내부 서비스 토큰을 포함해 `slicerag` 내부 API 호출
 4. 검색 결과를 system/context message에 첨부
 5. audit log에 memory metadata 기록
 
@@ -21,6 +21,8 @@ Gateway는 다음을 수행하지 않는다.
 - vector DB 접근
 - 웹 검색
 - learned_notes 저장
+
+SliceRAG는 외부 API Key나 사용자 권한을 해석하지 않는다. Gateway가 외부 인증과 프로젝트 스코프를 확정하고, SliceRAG는 `X-SliceRAG-Internal-Token`으로 호출 주체가 Gateway인지 확인한다.
 
 ## Audit metadata 초안
 
@@ -47,4 +49,3 @@ memory unavailable
 ```
 
 단, 프로젝트 정책에 `memory_required=true`가 도입되면 이후 단계에서 hard fail로 바꿀 수 있다.
-

@@ -26,7 +26,7 @@ class HashEmbeddingProvider:
 
 
 class OpenAIEmbeddingProvider:
-    """vLLM / MLX / OpenAI API 호환 임베딩 프로바이더."""
+    """Gateway 정책을 경유하는 OpenAI 호환 임베딩 프로바이더."""
 
     def __init__(self, model: str | None = None, dimensions: int | None = None) -> None:
         from slicerag.config import settings
@@ -35,8 +35,13 @@ class OpenAIEmbeddingProvider:
         self.model = model or settings.embedding_model
         self.dimensions = dimensions or settings.embedding_dimensions
         
-        api_key = settings.openai_api_key
-        base_url = settings.openai_base_url or None
+        api_key = settings.embedding_api_key
+        base_url = settings.embedding_gateway_url
+        if not base_url:
+            raise ValueError(
+                "SLICERAG_EMBEDDING_GATEWAY_URL is required when "
+                "SLICERAG_EMBEDDING_PROVIDER=openai"
+            )
         
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
 

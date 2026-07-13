@@ -14,9 +14,14 @@ class MemoryStoreProtocol(Protocol):
     ) -> DocumentIngestResponse:
         ...
 
-    def search(self, project_id: str, query: str, limit: int) -> SearchResponse:
+    def search(
+        self,
+        project_id: str,
+        query: str,
+        limit: int,
+        version: str | None = None,
+    ) -> SearchResponse:
         ...
 
     def get_document(self, project_id: str, document_id: str) -> StoredDocument | None:
         ...
-

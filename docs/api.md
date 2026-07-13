@@ -1,6 +1,14 @@
-# Aegis Memory API
+# SliceRAG 내부 API
 
-모든 API는 내부 서비스 호출용이다. 외부 클라이언트는 직접 호출하지 않는다.
+모든 API는 Gateway가 호출하는 내부 서비스용이다. 외부 클라이언트는 직접 호출하지 않는다.
+
+`/internal/*` 요청에는 다음 헤더가 필수다. 토큰 값은 Gateway와 SliceRAG만 공유하며, 브라우저·CLI·문서에 노출하지 않는다.
+
+```http
+X-SliceRAG-Internal-Token: <internal-service-token>
+```
+
+`project_id`는 Gateway가 외부 인증 결과에서 결정한다. `all`은 유효한 프로젝트 식별자가 아니며, 프로젝트 열거 또는 교차 프로젝트 검색 API는 제공하지 않는다.
 
 ## Health
 
@@ -22,6 +30,8 @@ GET /health
 ```http
 POST /internal/projects/{project_id}/documents
 ```
+
+요청 예시에는 `X-SliceRAG-Internal-Token` 헤더가 반드시 포함되어야 한다.
 
 요청:
 
