@@ -13,3 +13,9 @@ build/
 .DS_Store
 
 .continue/
+
+# 로컬 에이전트 지침
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+agents/
