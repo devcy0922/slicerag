@@ -35,12 +35,12 @@ sequenceDiagram
 
 | 항목 | 위치 | 이유 |
 |---|---|---|
-| `aegis-gateway` | macmini | 외부 진입점과 정책 집행 |
-| `slicerag` | macmini | DB, 검색, ingest worker와 가까움 |
-| PostgreSQL + pgvector | macmini | Gateway DB와 운영 일관성 |
-| raw archive | NAS `/srv/nas/shared/slicerag/` | 원문 백업과 재처리 |
-| vLLM | dgx-spark | 모델 서빙 전용 |
-| MLX | M1 Max | 보조 모델 서빙 |
+| `aegis-gateway` | Gateway 노드 | 외부 진입점과 정책 집행 |
+| `slicerag` | 애플리케이션 노드 | DB, 검색, ingest worker와 가까움 |
+| PostgreSQL + pgvector | 데이터 노드 | Gateway DB와 운영 일관성 |
+| raw archive | 객체 스토리지 | 원문 백업과 재처리 |
+| vLLM | GPU 추론 노드 | 모델 서빙 전용 |
+| MLX | 보조 추론 노드 | 보조 모델 서빙 |
 
 ## 신뢰 경계와 책임 분리
 
@@ -95,6 +95,6 @@ document ingest
 | 값 | 용도 |
 |---|---|
 | `memory` | 로컬 테스트와 API 계약 검증 |
-| `postgres` | macmini 운영 후보, PostgreSQL + pgvector 사용 |
+| `postgres` | 운영 환경 후보, PostgreSQL + pgvector 사용 |
 
 두 구현 모두 같은 내부 API와 response schema를 유지해야 한다.

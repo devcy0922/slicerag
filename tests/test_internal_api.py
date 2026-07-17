@@ -1,3 +1,5 @@
+import secrets
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,7 +7,7 @@ from slicerag import main
 from slicerag.config import settings
 from slicerag.store import MemoryStore
 
-INTERNAL_TOKEN = "test-internal-token"
+INTERNAL_TOKEN = secrets.token_hex(32)
 HEADERS = {"X-SliceRAG-Internal-Token": INTERNAL_TOKEN}
 
 
