@@ -25,6 +25,10 @@ GET /health
 }
 ```
 
+PostgreSQL migration 또는 저장 작업이 실패하면 `503 Service Unavailable`과
+`Retry-After: 5`를 반환한다. 이 경우 문서는 메모리에 임시 저장되지 않으며,
+`status: "accepted"`는 반환되지 않는다.
+
 ## Document Ingest
 
 ```http
@@ -67,6 +71,9 @@ POST /internal/projects/{project_id}/documents
 ```http
 POST /internal/projects/{project_id}/search
 ```
+
+PostgreSQL 검색 작업이 실패한 경우에도 동일하게 `503 Service Unavailable`을
+반환한다. 저장소 장애 중 빈 검색 결과를 정상 응답으로 해석해서는 안 된다.
 
 검색은 항상 `{project_id}` 네임스페이스 안에서만 수행된다. 같은 문서가 다른 프로젝트에 없으면 같은 query라도 `memory_hit=false`가 반환되어야 한다.
 

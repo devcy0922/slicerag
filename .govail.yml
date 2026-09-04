@@ -1,0 +1,16 @@
+apiVersion: govail.cloud/v1
+kind: Repository
+metadata:
+    name: slicerag
+spec:
+    profile:
+        name: oss
+        channel: stable
+    goal:
+        file: GOAL.md
+    automation:
+        level: suggest
+    review:
+        mode: normal
+    notifications:
+        level: important

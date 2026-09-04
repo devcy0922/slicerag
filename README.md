@@ -15,6 +15,7 @@ SliceRAG는 다음을 명시적으로 보장합니다.
 - 프로젝트 목록을 열거하거나 브라우저에서 직접 검색하는 API를 제공하지 않습니다.
 - `/internal/*` 요청은 Gateway와 공유한 `X-SliceRAG-Internal-Token` 없이는 실행되지 않습니다.
 - 검색 결과에 chunk와 source를 함께 반환하여 Gateway가 감사 메타데이터를 남길 수 있습니다.
+- PostgreSQL 장애 시 메모리로 자동 fallback하지 않으며, durable write가 보장되지 않으면 `503`을 반환합니다.
 
 ## 아키텍처
 

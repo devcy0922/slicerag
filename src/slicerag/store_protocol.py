@@ -8,6 +8,10 @@ from slicerag.models import (
 from slicerag.store import StoredDocument
 
 
+class StorageUnavailable(RuntimeError):
+    """Raised when the configured durable store cannot serve a request."""
+
+
 class MemoryStoreProtocol(Protocol):
     def ingest(
         self, project_id: str, request: DocumentIngestRequest
