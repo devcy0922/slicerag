@@ -40,12 +40,10 @@ SliceRAG는 외부 API Key나 사용자 권한을 해석하지 않는다. Gatewa
 
 ## 장애 처리
 
-MVP에서 Memory 장애는 기본적으로 soft fail이다.
+PostgreSQL 저장소를 사용하는 환경에서 DB migration 또는 operation이 실패하면
+SliceRAG는 메모리로 자동 전환하지 않고 `503 Service Unavailable`을 반환한다.
+따라서 `accepted` 응답은 항상 durable write가 완료된 경우에만 의미한다.
 
-```text
-memory unavailable
-→ Gateway audit에 memory_error 기록
-→ 기존 LLM 요청은 정책 허용 범위 안에서 계속 처리
-```
-
-단, 프로젝트 정책에 `memory_required=true`가 도입되면 이후 단계에서 hard fail로 바꿀 수 있다.
+Gateway는 `503`을 `memory_error`로 audit하고, `Retry-After` 헤더를 존중해 재시도하거나
+정책에 따라 상위 요청을 중단해야 한다. 인메모리 저장소는 명시적으로
+`SLICERAG_STORE=memory`를 선택한 로컬 테스트 전용 구성이다.

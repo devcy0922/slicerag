@@ -8,6 +8,10 @@ MVP 기본 저장소는 PostgreSQL + pgvector다.
 
 서비스에서 PostgreSQL 저장소를 사용하려면 `SLICERAG_STORE=postgres`와 `SLICERAG_DATABASE_URL`을 설정한다.
 
+PostgreSQL 저장소는 durability 경계를 유지하기 위해 migration이나 CRUD 작업 실패 시
+메모리 fallback을 수행하지 않는다. 해당 요청은 `503 Service Unavailable`로 실패하며,
+`accepted` 응답은 영속 저장이 완료된 경우에만 반환된다.
+
 검색 대상 문서가 없는 새 `project_id`도 검색 로그를 남길 수 있도록, PostgreSQL store는 search 시작 시 `memory_projects`에 project row를 idempotent하게 보장한다.
 
 ## 테이블

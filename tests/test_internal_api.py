@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from slicerag import main
 from slicerag.config import settings
 from slicerag.store import MemoryStore
+from slicerag.store_protocol import StorageUnavailable
 
 INTERNAL_TOKEN = secrets.token_hex(32)
 HEADERS = {"X-SliceRAG-Internal-Token": INTERNAL_TOKEN}
@@ -97,3 +98,47 @@ def test_project_enumeration_and_browser_ui_are_not_exposed(client: TestClient) 
 
     assert projects.status_code == 404
     assert root.status_code == 404
+
+
+def test_storage_failure_is_explicitly_returned_as_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class FailingStore:
+        def ingest(self, project_id, request):
+            raise StorageUnavailable("database is down")
+
+        def search(self, project_id, query, limit, version=None):
+            raise StorageUnavailable("database is down")
+
+        def get_document(self, project_id, document_id):
+            raise StorageUnavailable("database is down")
+
+    monkeypatch.setattr(main, "store", FailingStore())
+
+    response = client.post(
+        "/internal/projects/alpha/documents",
+        headers=HEADERS,
+        json={
+            "source": {"type": "markdown", "uri": "repo://alpha/doc.md"},
+            "content": "must not be acknowledged as durable",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "durable storage is temporarily unavailable"}
+    assert response.headers["retry-after"] == "5"
+
+
+def test_postgres_migration_failure_does_not_create_memory_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from slicerag import postgres_store
+
+    monkeypatch.setattr(
+        postgres_store,
+        "run_migrations",
+        lambda _: (_ for _ in ()).throw(RuntimeError("database is down")),
+    )
+
+    with pytest.raises(StorageUnavailable, match="migrations failed"):
+        postgres_store.PostgresMemoryStore("postgresql://unavailable")
