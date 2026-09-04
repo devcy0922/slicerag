@@ -19,3 +19,12 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 agents/
+
+# GoVail Control generated agent assets
+/.govail/
+/.agents/
+/.codex/
+/.cursor/
+/.claude/
+/.opencode/
+/.github/skills/

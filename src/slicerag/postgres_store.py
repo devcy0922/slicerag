@@ -14,6 +14,7 @@ from slicerag.models import (
     SearchSource,
 )
 from slicerag.store import StoredDocument
+from slicerag.store_protocol import StorageUnavailable
 
 
 def run_migrations(database_url: str) -> None:
@@ -38,15 +39,6 @@ def run_migrations(database_url: str) -> None:
                 cursor.execute(sql)
 
 
-def cosine_similarity(v1: list[float], v2: list[float]) -> float:
-    dot_product = sum(a * b for a, b in zip(v1, v2))
-    norm_v1 = sum(a * a for a in v1) ** 0.5
-    norm_v2 = sum(a * a for a in v2) ** 0.5
-    if norm_v1 == 0 or norm_v2 == 0:
-        return 0.0
-    return dot_product / (norm_v1 * norm_v2)
-
-
 class PostgresMemoryStore:
     def __init__(
         self,
@@ -57,14 +49,12 @@ class PostgresMemoryStore:
             raise ValueError("SLICERAG_DATABASE_URL is required for postgres store")
         self.database_url = database_url
         self.embedding_provider = embedding_provider or get_embedding_provider()
-        self.fallback_projects = set()
-        self.fallback_sources = {}
-        self.fallback_documents = {}
-        self.fallback_chunks = []
         try:
             run_migrations(self.database_url)
         except Exception as e:
-            print(f"Migration failed, using memory store fallback: {e}")
+            raise StorageUnavailable(
+                "PostgreSQL migrations failed; durable storage is unavailable"
+            ) from e
 
     def ingest(self, project_id: str, request: DocumentIngestRequest) -> DocumentIngestResponse:
         import psycopg
@@ -151,38 +141,9 @@ class PostgresMemoryStore:
                             ),
                         )
         except Exception as e:
-            print(f"Database error during ingest, falling back to memory store: {e}")
-            self.fallback_projects.add(project_id)
-            self.fallback_sources[source_id] = {
-                "source_id": source_id,
-                "project_id": project_id,
-                "source_type": request.source.type,
-                "uri": request.source.uri,
-                "title": request.source.title,
-                "version": request.source.version,
-                "metadata": request.metadata,
-            }
-            self.fallback_documents[document_id] = {
-                "document_id": document_id,
-                "project_id": project_id,
-                "source_id": source_id,
-                "content_hash": content_hash,
-                "version": version,
-                "metadata": request.metadata,
-            }
-            self.fallback_chunks = [c for c in self.fallback_chunks if c["document_id"] != document_id]
-            for chunk in chunks:
-                chunk_id = stable_id("chunk", document_id, str(chunk.index), chunk.text)
-                self.fallback_chunks.append({
-                    "chunk_id": chunk_id,
-                    "project_id": project_id,
-                    "document_id": document_id,
-                    "source_id": source_id,
-                    "chunk_index": chunk.index,
-                    "text": chunk.text,
-                    "embedding": self.embedding_provider.embed(chunk.text),
-                    "version": version,
-                })
+            raise StorageUnavailable(
+                "PostgreSQL ingest failed; document was not durably accepted"
+            ) from e
 
         return DocumentIngestResponse(
             project_id=project_id,
@@ -260,30 +221,9 @@ class PostgresMemoryStore:
                         (search_id, project_id, query, bool(selected), source_ids),
                     )
         except Exception as e:
-            print(f"Database error during search, falling back to memory store: {e}")
-            results = []
-            for c in self.fallback_chunks:
-                if project_id != "all" and c["project_id"] != project_id:
-                    continue
-                if version and c["version"] != version:
-                    continue
-                score = cosine_similarity(query_embedding, c["embedding"])
-                if score <= 0:
-                    continue
-                src = self.fallback_sources.get(c["source_id"], {})
-                results.append({
-                    "chunk_id": c["chunk_id"],
-                    "document_id": c["document_id"],
-                    "source_id": c["source_id"],
-                    "text": c["text"],
-                    "score": score,
-                    "source_type": src.get("source_type", "unknown"),
-                    "uri": src.get("uri", ""),
-                    "title": src.get("title", ""),
-                    "version": src.get("version", "1.0.0"),
-                })
-            results.sort(key=lambda x: x["score"], reverse=True)
-            selected = results[:limit]
+            raise StorageUnavailable(
+                "PostgreSQL search failed; durable storage is unavailable"
+            ) from e
 
         sources_by_id = {
             str(row["source_id"]): SearchSource(
@@ -339,21 +279,9 @@ class PostgresMemoryStore:
                 created_at=row["created_at"],
             )
         except Exception as e:
-            print(f"Database error in get_document: {e}")
-            doc = self.fallback_documents.get(document_id)
-            if doc:
-                if project_id != "all" and doc["project_id"] != project_id:
-                    return None
-                import datetime
-                return StoredDocument(
-                    document_id=doc["document_id"],
-                    project_id=doc["project_id"],
-                    source_id=doc["source_id"],
-                    content_hash=doc["content_hash"],
-                    metadata=doc["metadata"],
-                    created_at=datetime.datetime.now(),
-                )
-            return None
+            raise StorageUnavailable(
+                "PostgreSQL document lookup failed; durable storage is unavailable"
+            ) from e
 
 def _vector_literal(values: list[float]) -> str:
     return "[" + ",".join(f"{value:.9f}" for value in values) + "]"
