@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path, Request
+from fastapi.responses import JSONResponse
 from langsmith import traceable
 
 from slicerag.auth import require_internal_access
@@ -11,12 +12,22 @@ from slicerag.models import (
     SearchResponse,
 )
 from slicerag.store_factory import create_store
+from slicerag.store_protocol import StorageUnavailable
 
 app = FastAPI(
     title="SliceRAG",
     description="Gateway가 호출하는 내부 Project RAG 서비스",
     version="0.1.0",
 )
+
+
+@app.exception_handler(StorageUnavailable)
+async def storage_unavailable_handler(_: Request, __: StorageUnavailable):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "durable storage is temporarily unavailable"},
+        headers={"Retry-After": "5"},
+    )
 store = create_store()
 internal_router = APIRouter(
     prefix="/internal",

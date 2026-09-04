@@ -1,0 +1,12 @@
+lockVersion: 1
+profile:
+    name: oss
+    version: 1.1.0
+skills:
+    code-review: 2.1.3
+    github-issue: 1.4.0
+    github-pr: 1.8.2
+    project-health: 1.4.1
+    security-review: 1.1.0
+resolvedAt: 2026-09-04T13:08:42Z
+hash: 69c04c5ff005cb1b
